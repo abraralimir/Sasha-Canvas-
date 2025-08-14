@@ -9,7 +9,7 @@ const CompleteDrawingInputSchema = z.object({
   drawingDataUri: z
     .string()
     .describe(
-      "The user's initial drawing as a data URI."
+      "The user's initial drawing as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type CompleteDrawingInput = z.infer<typeof CompleteDrawingInputSchema>;
