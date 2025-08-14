@@ -3,7 +3,7 @@
 // It includes the aiCompleteDrawing function, CompleteDrawingInput, and CompleteDrawingOutput types.
 'use server';
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const CompleteDrawingInputSchema = z.object({
   drawingDataUri: z
@@ -54,7 +54,7 @@ const completeDrawingFlow = ai.defineFlow(
         {media: {url: input.drawingDataUri}},
       ],
       config: {
-        responseModalities: ['IMAGE'],
+        responseModalities: ['IMAGE', 'TEXT'],
       },
     });
 
