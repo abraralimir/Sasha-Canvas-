@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { aiCompleteDrawing } from '@/ai/flows/complete-drawing';
 import { useToast } from '@/hooks/use-toast';
 import { WelcomeScreen } from '@/components/welcome-screen';
@@ -15,6 +15,7 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true);
   const { toast } = useToast();
   const canvasRef = useRef<DrawingCanvasRef>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState('#000000');
@@ -65,6 +66,25 @@ export default function Home() {
     canvasRef.current?.download(canvasColor);
   };
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUri = event.target?.result as string;
+        setCurrentDrawingDataUri(dataUri);
+        setOriginalDrawingDataUri(dataUri); // Set original to uploaded image
+        setIsChatOpen(false); // Close chat when new image is uploaded
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   return (
     <>
       <div className="fixed inset-0 -z-10 animated-gradient" />
@@ -73,6 +93,13 @@ export default function Home() {
         "h-screen w-screen flex flex-col items-center justify-center transition-opacity duration-500",
         showWelcome ? "opacity-0" : "opacity-100"
       )}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*"
+        />
         <div className="relative w-full h-full p-4 flex gap-4">
           <Card className="flex-grow h-full w-full overflow-hidden shadow-2xl bg-transparent border-border/20">
               <DrawingCanvas
@@ -109,6 +136,7 @@ export default function Home() {
             onComplete={handleComplete}
             onClear={handleClear}
             onDownload={handleDownload}
+            onUpload={handleUploadClick}
             isCompleting={isCompleting || isRefining}
             isChatEnabled={!!currentDrawingDataUri}
             onToggleChat={() => setIsChatOpen(prev => !prev)}

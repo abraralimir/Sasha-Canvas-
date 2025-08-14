@@ -68,7 +68,7 @@ Create a refined version of the AI-completed drawing based on the user's instruc
 
     return {
       refinedDrawingDataUri: media.url,
-      feedback: text()
+      feedback: text
     };
   }
 );

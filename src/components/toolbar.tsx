@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Circle, RectangleHorizontal, Triangle, Sparkles, Trash2, Minus, MessageSquare, Palette, Download } from "lucide-react";
+import { Pencil, Circle, RectangleHorizontal, Triangle, Sparkles, Trash2, Minus, MessageSquare, Palette, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +27,7 @@ type ToolbarProps = {
   onComplete: () => void;
   onClear: () => void;
   onDownload: () => void;
+  onUpload: () => void;
   isCompleting: boolean;
   isChatEnabled: boolean;
   onToggleChat: () => void;
@@ -44,6 +45,7 @@ export function Toolbar({
   onComplete,
   onClear,
   onDownload,
+  onUpload,
   isCompleting,
   isChatEnabled,
   onToggleChat,
@@ -58,7 +60,7 @@ export function Toolbar({
 
   return (
     <TooltipProvider>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-card p-2 rounded-lg shadow-lg flex items-center gap-1 border">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-card p-2 rounded-lg shadow-lg flex items-center gap-1 border flex-wrap justify-center">
         {tools.map((t) => (
           <Tooltip key={t.name}>
             <TooltipTrigger asChild>
@@ -143,6 +145,17 @@ export function Toolbar({
               />
           </PopoverContent>
         </Popover>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onUpload} aria-label="Upload Image">
+              <Upload />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Upload Image</p>
+          </TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
