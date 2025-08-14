@@ -9,11 +9,11 @@ const CompleteDrawingInputSchema = z.object({
   drawingDataUri: z
     .string()
     .describe(
-      "The drawing as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "The user's initial drawing as a data URI."
     ),
   userPrompt: z
     .string()
-    .describe('A prompt from the user describing the desired enhancements.'),
+    .describe('A prompt from the user describing what they drew.'),
 });
 export type CompleteDrawingInput = z.infer<typeof CompleteDrawingInputSchema>;
 
@@ -30,6 +30,19 @@ export async function aiCompleteDrawing(
   return completeDrawingFlow(input);
 }
 
+const systemPrompt = `You are a world-class digital artist named Sasha. Your purpose is to take user-created doodles and sketches and transform them into beautiful, high-quality images.
+
+Instructions:
+1.  Analyze the user's drawing provided as an image.
+2.  Read the user's prompt which describes the drawing.
+3.  Completely redraw the image in a photorealistic and artistic style.
+4.  Do not just "trace" or "colorize" the user's drawing. You should re-imagine it, adding detail, texture, lighting, and a dynamic composition.
+5.  The final image should be a dramatic improvement, looking like a finished piece of digital art.
+6.  The output must be only the generated image, with no additional text or commentary.
+7.  The user's drawing is a rough guide; feel free to be creative and interpret their idea artistically. The goal is to "wow" them with a professional-quality image based on their simple drawing.
+`;
+
+
 const completeDrawingFlow = ai.defineFlow(
   {
     name: 'completeDrawingFlow',
@@ -40,14 +53,19 @@ const completeDrawingFlow = ai.defineFlow(
     const {media} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
+        {text: systemPrompt},
         {media: {url: input.drawingDataUri}},
-        {text: input.userPrompt},
+        {text: `User's description of drawing: ${input.userPrompt}`},
       ],
       config: {
-        responseModalities: ['IMAGE', 'TEXT'],
+        responseModalities: ['IMAGE'],
       },
     });
 
+    if (!media) {
+        throw new Error("The AI failed to generate an image.");
+    }
+    
     return {completedDrawingDataUri: media.url};
   }
 );

@@ -35,6 +35,8 @@ export type DrawingCanvasRef = {
   getCanvasAsDataURL: (backgroundColor?: string) => string | undefined;
   clear: (backgroundColor?: string) => void;
   download: (backgroundColor?: string) => void;
+  isCanvasEmpty: () => boolean;
+  loadImage: (dataUri: string) => void;
 };
 
 const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
@@ -47,6 +49,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
     const getCanvasAsDataURL = (bgColor: string = '#FFFFFF') => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
@@ -58,6 +61,26 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
       tempCtx.drawImage(canvas, 0, 0);
       return tempCanvas.toDataURL('image/png');
     };
+    
+    const isCanvasEmpty = () => {
+        return drawingElements.length === 0 && !currentElement && !imageDataUri;
+    }
+
+    const loadImage = (dataUri: string) => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
+        
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.src = dataUri;
+        image.onload = () => {
+            setDrawingElements([]);
+            setCurrentElement(null);
+            clearCanvas(ctx);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        };
+    }
 
     useImperativeHandle(ref, () => ({
       getCanvasAsDataURL,
@@ -67,8 +90,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
         if (canvas && ctx) {
-            ctx.fillStyle = bgColor || backgroundColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            clearCanvas(ctx, bgColor);
         }
       },
       download: (bgColor) => {
@@ -81,12 +103,14 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-      }
+      },
+      isCanvasEmpty,
+      loadImage
     }));
     
-    const clearCanvas = (ctx: CanvasRenderingContext2D) => {
+    const clearCanvas = (ctx: CanvasRenderingContext2D, color?: string) => {
         const canvas = ctx.canvas;
-        ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = color || backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -186,22 +210,14 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
     }, [drawingElements, currentElement, backgroundColor]);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (!canvas || !ctx) return;
-        
         if (imageDataUri) {
-            const image = new Image();
-            image.crossOrigin = "anonymous";
-            image.src = imageDataUri;
-            image.onload = () => {
-                setDrawingElements([]);
-                setCurrentElement(null);
-                clearCanvas(ctx);
-                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-            };
+            loadImage(imageDataUri);
         } else {
-             clearCanvas(ctx);
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if(ctx) {
+                clearCanvas(ctx);
+            }
         }
     }, [imageDataUri, backgroundColor]);
 
@@ -255,7 +271,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
             onTouchMove={handleDrawing}
             onTouchEnd={stopDrawing}
             className="w-full h-full cursor-crosshair"
-            style={{backgroundColor: backgroundColor}}
         />
     );
 });
