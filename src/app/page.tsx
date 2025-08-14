@@ -9,7 +9,7 @@ import { Toolbar, type Tool } from '@/components/toolbar';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -17,8 +17,9 @@ export default function Home() {
   const canvasRef = useRef<DrawingCanvasRef>(null);
 
   const [tool, setTool] = useState<Tool>('pen');
-  const [color, setColor] = useState('#ffffff');
+  const [color, setColor] = useState('#000000');
   const [strokeWidth, setStrokeWidth] = useState(5);
+  const [canvasColor, setCanvasColor] = useState('#ffffff');
   
   const [isCompleting, setIsCompleting] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -28,7 +29,7 @@ export default function Home() {
   const [currentDrawingDataUri, setCurrentDrawingDataUri] = useState<string | null>(null);
 
   const handleComplete = async () => {
-    const dataUri = canvasRef.current?.getCanvasAsDataURL();
+    const dataUri = canvasRef.current?.getCanvasAsDataURL(canvasColor);
     if (!dataUri) {
       toast({ title: "Canvas is empty", description: "Draw something before using AI completion.", variant: "destructive" });
       return;
@@ -54,27 +55,33 @@ export default function Home() {
   };
 
   const handleClear = () => {
-    canvasRef.current?.clear();
+    canvasRef.current?.clear(canvasColor);
     setOriginalDrawingDataUri(null);
     setCurrentDrawingDataUri(null);
     setIsChatOpen(false);
   };
   
+  const handleDownload = () => {
+    canvasRef.current?.download(canvasColor);
+  };
+
   return (
     <>
+      <div className="fixed inset-0 -z-10 animated-gradient" />
       {showWelcome && <WelcomeScreen onAnimationEnd={() => setShowWelcome(false)} />}
       <main className={cn(
-        "h-screen w-screen flex flex-col items-center justify-center transition-opacity duration-500 animated-gradient",
+        "h-screen w-screen flex flex-col items-center justify-center transition-opacity duration-500",
         showWelcome ? "opacity-0" : "opacity-100"
       )}>
         <div className="relative w-full h-full p-4 flex gap-4">
-          <Card className="flex-grow h-full w-full overflow-hidden shadow-2xl bg-transparent backdrop-blur-sm bg-card/10 border-border/20">
+          <Card className="flex-grow h-full w-full overflow-hidden shadow-2xl bg-transparent border-border/20">
               <DrawingCanvas
                 ref={canvasRef}
                 tool={tool}
                 color={color}
                 strokeWidth={strokeWidth}
                 imageDataUri={currentDrawingDataUri}
+                backgroundColor={canvasColor}
               />
           </Card>
           
@@ -97,8 +104,11 @@ export default function Home() {
             setColor={setColor}
             strokeWidth={strokeWidth}
             setStrokeWidth={setStrokeWidth}
+            canvasColor={canvasColor}
+            setCanvasColor={setCanvasColor}
             onComplete={handleComplete}
             onClear={handleClear}
+            onDownload={handleDownload}
             isCompleting={isCompleting || isRefining}
             isChatEnabled={!!currentDrawingDataUri}
             onToggleChat={() => setIsChatOpen(prev => !prev)}
@@ -106,6 +116,7 @@ export default function Home() {
         <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
             <SheetContent className="w-[90vw] max-w-[440px] sm:w-[440px] p-0 border-none">
                  <SheetTitle className="sr-only">Sasha Assistant Chat</SheetTitle>
+                 <SheetDescription className="sr-only">Chat with Sasha to refine your image.</SheetDescription>
                  {currentDrawingDataUri && originalDrawingDataUri && (
                     <ChatPanel 
                         originalDrawingDataUri={originalDrawingDataUri}

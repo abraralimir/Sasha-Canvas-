@@ -40,22 +40,6 @@ export async function refineDrawing(input: RefineDrawingInput): Promise<RefineDr
   return refineDrawingFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'refineDrawingPrompt',
-  input: {schema: RefineDrawingInputSchema},
-  output: {schema: RefineDrawingOutputSchema},
-  prompt: `You are Sasha, a helpful AI assistant that helps users refine their drawings.
-
-The user has provided an original drawing, an AI-completed drawing, and instructions on how to refine the drawing.
-
-Original Drawing: {{media url=originalDrawingDataUri}}
-AI-Completed Drawing: {{media url=aiCompletedDrawingDataUri}}
-Instructions: {{{userInstructions}}}
-
-Create a refined version of the AI-completed drawing based on the user's instructions. Return the refined drawing as a data URI. Also provide any feedback to the user that may be helpful.
-`,
-});
-
 const refineDrawingFlow = ai.defineFlow(
   {
     name: 'refineDrawingFlow',
@@ -63,7 +47,28 @@ const refineDrawingFlow = ai.defineFlow(
     outputSchema: RefineDrawingOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const {media, text} = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      prompt: [
+        {text: `You are Sasha, a helpful AI assistant that helps users refine their drawings.
+
+The user has provided an original drawing, an AI-completed drawing, and instructions on how to refine the drawing.
+
+Instructions: ${input.userInstructions}
+
+Create a refined version of the AI-completed drawing based on the user's instructions. Return the refined drawing as a data URI. Also provide any feedback to the user that may be helpful.
+`},
+        {media: {url: input.originalDrawingDataUri}},
+        {media: {url: input.aiCompletedDrawingDataUri}},
+      ],
+      config: {
+        responseModalities: ['IMAGE', 'TEXT'],
+      },
+    });
+
+    return {
+      refinedDrawingDataUri: media.url,
+      feedback: text()
+    };
   }
 );

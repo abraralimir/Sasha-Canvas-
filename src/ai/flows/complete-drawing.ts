@@ -44,7 +44,7 @@ const completeDrawingFlow = ai.defineFlow(
         {text: input.userPrompt},
       ],
       config: {
-        responseModalities: ['IMAGE'],
+        responseModalities: ['IMAGE', 'TEXT'],
       },
     });
 

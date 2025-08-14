@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Circle, RectangleHorizontal, Triangle, Sparkles, Trash2, Minus, MessageSquare } from "lucide-react";
+import { Pencil, Circle, RectangleHorizontal, Triangle, Sparkles, Trash2, Minus, MessageSquare, Palette, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,8 +22,11 @@ type ToolbarProps = {
   setColor: (color: string) => void;
   strokeWidth: number;
   setStrokeWidth: (width: number) => void;
+  canvasColor: string;
+  setCanvasColor: (color: string) => void;
   onComplete: () => void;
   onClear: () => void;
+  onDownload: () => void;
   isCompleting: boolean;
   isChatEnabled: boolean;
   onToggleChat: () => void;
@@ -36,8 +39,11 @@ export function Toolbar({
   setColor,
   strokeWidth,
   setStrokeWidth,
+  canvasColor,
+  setCanvasColor,
   onComplete,
   onClear,
+  onDownload,
   isCompleting,
   isChatEnabled,
   onToggleChat,
@@ -73,7 +79,7 @@ export function Toolbar({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Color">
+            <Button variant="ghost" size="icon" aria-label="Stroke color">
               <div className="w-6 h-6 rounded-full border-2" style={{ backgroundColor: color }} />
             </Button>
           </PopoverTrigger>
@@ -88,6 +94,31 @@ export function Toolbar({
                   )}
                   style={{ backgroundColor: c }}
                   onClick={() => setColor(c)}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Canvas color">
+              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center" style={{ backgroundColor: canvasColor }}>
+                <Palette className="w-4 h-4" style={{ color: color === canvasColor ? (canvasColor === '#ffffff' ? '#000000' : '#ffffff') : color }}/>
+              </div>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2">
+            <div className="grid grid-cols-7 gap-1">
+              {colors.map((c) => (
+                <button
+                  key={c}
+                  className={cn(
+                    "w-6 h-6 rounded-full border-2 transition-transform transform hover:scale-110",
+                    canvasColor === c ? "border-primary" : "border-transparent"
+                  )}
+                  style={{ backgroundColor: c }}
+                  onClick={() => setCanvasColor(c)}
                 />
               ))}
             </div>
@@ -121,6 +152,17 @@ export function Toolbar({
           </TooltipTrigger>
           <TooltipContent>
             <p>Clear Canvas</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onDownload} aria-label="Download Image">
+              <Download />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Download Image</p>
           </TooltipContent>
         </Tooltip>
         
