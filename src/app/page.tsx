@@ -9,7 +9,7 @@ import { Toolbar, type Tool } from '@/components/toolbar';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -105,6 +105,7 @@ export default function Home() {
         />
         <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
             <SheetContent className="w-[90vw] max-w-[440px] sm:w-[440px] p-0 border-none">
+                 <SheetTitle className="sr-only">Sasha Assistant Chat</SheetTitle>
                  {currentDrawingDataUri && originalDrawingDataUri && (
                     <ChatPanel 
                         originalDrawingDataUri={originalDrawingDataUri}
