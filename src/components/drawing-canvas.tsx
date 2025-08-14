@@ -46,6 +46,21 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
     const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
     const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null);
 
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const preventScroll = (e: TouchEvent) => {
+            e.preventDefault();
+        };
+
+        canvas.addEventListener('touchmove', preventScroll, { passive: false });
+
+        return () => {
+            canvas.removeEventListener('touchmove', preventScroll);
+        };
+    }, []);
+
     const getCanvasAsDataURL = (bgColor: string = '#FFFFFF') => {
       const canvas = canvasRef.current;
       if (!canvas) return;

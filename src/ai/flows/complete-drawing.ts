@@ -11,9 +11,6 @@ const CompleteDrawingInputSchema = z.object({
     .describe(
       "The user's initial drawing as a data URI."
     ),
-  userPrompt: z
-    .string()
-    .describe('A prompt from the user describing what they drew.'),
 });
 export type CompleteDrawingInput = z.infer<typeof CompleteDrawingInputSchema>;
 
@@ -30,16 +27,16 @@ export async function aiCompleteDrawing(
   return completeDrawingFlow(input);
 }
 
-const systemPrompt = `You are a world-class digital artist named Sasha. Your purpose is to take user-created doodles and sketches and transform them into beautiful, high-quality images.
+const systemPrompt = `You are a world-class digital artist named Sasha. Your purpose is to take a user-created doodle or sketch and transform it into a beautiful, high-quality image.
 
 Instructions:
 1.  Analyze the user's drawing provided as an image.
-2.  Read the user's prompt which describes the drawing.
-3.  Completely redraw the image in a photorealistic and artistic style.
-4.  Do not just "trace" or "colorize" the user's drawing. You should re-imagine it, adding detail, texture, lighting, and a dynamic composition.
+2.  Identify the subject matter of the drawing.
+3.  Completely redraw the image in a photorealistic and artistic style, adding detail, texture, lighting, and a dynamic composition.
+4.  Do not just "trace" or "colorize" the user's drawing. You should re-imagine it based on the core idea.
 5.  The final image should be a dramatic improvement, looking like a finished piece of digital art.
 6.  The output must be only the generated image, with no additional text or commentary.
-7.  The user's drawing is a rough guide; feel free to be creative and interpret their idea artistically. The goal is to "wow" them with a professional-quality image based on their simple drawing.
+7.  The user's drawing is a rough guide; be creative and interpret their idea artistically. The goal is to "wow" them with a professional-quality image based on their simple drawing.
 `;
 
 
@@ -55,7 +52,6 @@ const completeDrawingFlow = ai.defineFlow(
       prompt: [
         {text: systemPrompt},
         {media: {url: input.drawingDataUri}},
-        {text: `User's description of drawing: ${input.userPrompt}`},
       ],
       config: {
         responseModalities: ['IMAGE'],

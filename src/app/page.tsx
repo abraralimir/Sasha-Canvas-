@@ -10,18 +10,6 @@ import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -37,31 +25,16 @@ export default function Home() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
-  const [userPrompt, setUserPrompt] = useState('');
-
 
   const [originalDrawingDataUri, setOriginalDrawingDataUri] = useState<string | null>(null);
   const [currentDrawingDataUri, setCurrentDrawingDataUri] = useState<string | null>(null);
 
-  const handleCompleteRequest = () => {
+  const handleComplete = async () => {
     const dataUri = canvasRef.current?.getCanvasAsDataURL(canvasColor);
     if (!dataUri || canvasRef.current?.isCanvasEmpty()) {
       toast({ title: "Canvas is empty", description: "Please draw something before using the AI.", variant: "destructive" });
       return;
     }
-    setIsPromptDialogOpen(true);
-  };
-  
-  const handleCompleteConfirm = async () => {
-    if (!userPrompt.trim()) {
-      toast({ title: "Prompt is empty", description: "Please describe what you are drawing.", variant: "destructive" });
-      return;
-    }
-    setIsPromptDialogOpen(false);
-    
-    const dataUri = canvasRef.current?.getCanvasAsDataURL(canvasColor);
-    if (!dataUri) return; // Should not happen due to previous check
     
     setOriginalDrawingDataUri(dataUri);
     setIsCompleting(true);
@@ -69,12 +42,10 @@ export default function Home() {
     try {
       const result = await aiCompleteDrawing({
         drawingDataUri: dataUri,
-        userPrompt: userPrompt,
       });
       setCurrentDrawingDataUri(result.completedDrawingDataUri);
       toast({ title: "Drawing Completed!", description: "Sasha can now help you refine it. Click the chat icon to start." });
       setIsChatOpen(true);
-      setUserPrompt(''); // Reset prompt for next time
     } catch (error) {
       console.error(error);
       toast({ title: "AI Completion Failed", description: "Something went wrong. Please try again.", variant: "destructive" });
@@ -82,7 +53,6 @@ export default function Home() {
       setIsCompleting(false);
     }
   };
-
 
   const handleClear = () => {
     canvasRef.current?.clear(canvasColor);
@@ -127,24 +97,6 @@ export default function Home() {
 
   return (
     <>
-      <AlertDialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>What are you drawing?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Give the AI a hint to get the best results. For example: "A cute cat", "A futuristic city", "A beautiful flower".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-2">
-              <Label htmlFor="prompt-input">Your Description</Label>
-              <Input id="prompt-input" value={userPrompt} onChange={(e) => setUserPrompt(e.target.value)} placeholder="e.g., A happy little robot" />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCompleteConfirm}>Complete Drawing</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <div className="fixed inset-0 -z-10 animated-gradient" />
       {showWelcome && <WelcomeScreen onAnimationEnd={() => setShowWelcome(false)} />}
       <main className={cn(
@@ -191,7 +143,7 @@ export default function Home() {
             setStrokeWidth={setStrokeWidth}
             canvasColor={canvasColor}
             setCanvasColor={setCanvasColor}
-            onComplete={handleCompleteRequest}
+            onComplete={handleComplete}
             onClear={handleClear}
             onDownload={handleDownload}
             onUpload={handleUploadClick}
