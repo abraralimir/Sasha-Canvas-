@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { refineDrawing } from '@/ai/flows/refine-drawing';
+import type { RefineDrawingOutput } from '@/ai/schemas/drawing';
 import Image from 'next/image';
 
 type Message = {
@@ -19,78 +19,65 @@ type Message = {
 };
 
 type ChatPanelProps = {
-  originalDrawingDataUri: string;
-  aiCompletedDrawingDataUri: string;
-  onNewImage: (dataUri: string) => void;
-  isRefining: boolean;
-  setIsRefining: (isRefining: boolean) => void;
+  onRefine: (instructions: string) => Promise<RefineDrawingOutput>;
+  isProcessing: boolean;
 };
 
-export function ChatPanel({
-  originalDrawingDataUri,
-  aiCompletedDrawingDataUri,
-  onNewImage,
-  isRefining,
-  setIsRefining,
-}: ChatPanelProps) {
+export function ChatPanel({ onRefine, isProcessing }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [currentAiDrawing, setCurrentAiDrawing] = useState(aiCompletedDrawingDataUri);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Initial welcome message when the component mounts
     setMessages([
       {
         id: 'intro',
         sender: 'sasha',
-        text: "Hi there! I'm Sasha. I've completed your drawing. How can I help you refine it?",
+        text: "Hi there! I'm Sasha. How can I help you create today? You can ask me to draw something, or refine the image on the canvas.",
       },
     ]);
-  }, [originalDrawingDataUri]);
+  }, []);
 
+  // Scroll to bottom when new messages are added or when processing starts
   useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('div');
-    if (viewport) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-    }
-  }, [messages]);
+    setTimeout(() => {
+      const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100);
+  }, [messages, isProcessing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isRefining) return;
+    if (!input.trim() || isProcessing) return;
 
     const userMessage: Message = { id: Date.now().toString(), sender: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
+    const instructions = input;
     setInput('');
-    setIsRefining(true);
-
+    
     try {
-      const result = await refineDrawing({
-        originalDrawingDataUri,
-        aiCompletedDrawingDataUri: currentAiDrawing,
-        userInstructions: input,
-      });
+      // The parent component handles the AI call and its loading state
+      const result = await onRefine(instructions);
       
-      setCurrentAiDrawing(result.refinedDrawingDataUri);
-
       const sashaMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'sasha',
-        text: result.feedback || "Here's the refined version.",
+        text: result.feedback || "Here you go!",
         refinedImage: result.refinedDrawingDataUri,
       };
       setMessages(prev => [...prev, sashaMessage]);
-      onNewImage(result.refinedDrawingDataUri);
+
     } catch (error) {
-      console.error('Error refining drawing:', error);
+      console.error('Error in chat panel:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'sasha',
-        text: "Sorry, I encountered an error while refining your drawing. Please try again.",
+        text: "I'm sorry, I had trouble with that request. Please try again.",
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsRefining(false);
     }
   };
   
@@ -142,7 +129,7 @@ export function ChatPanel({
                 )}
               </div>
             ))}
-             {isRefining && (
+             {isProcessing && (
                 <div className="flex items-start gap-3 justify-start">
                     <Avatar className="w-8 h-8">
                         <AvatarFallback>S</AvatarFallback>
@@ -162,7 +149,7 @@ export function ChatPanel({
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g., Make the sky blue..."
+            placeholder="Describe what you want to create..."
             className="flex-grow resize-none bg-background/50"
             rows={1}
             onKeyDown={(e) => {
@@ -171,9 +158,9 @@ export function ChatPanel({
                 handleSubmit(e);
               }
             }}
-            disabled={isRefining}
+            disabled={isProcessing}
           />
-          <Button type="submit" size="icon" disabled={isRefining || !input.trim()}>
+          <Button type="submit" size="icon" disabled={isProcessing || !input.trim()}>
             <CornerDownLeft />
           </Button>
         </form>

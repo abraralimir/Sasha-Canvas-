@@ -1,42 +1,22 @@
 'use server';
 
 /**
- * @fileOverview A flow for refining AI-completed drawings using a conversational AI assistant.
+ * @fileOverview An AI flow for creating and refining drawings. It can generate a new image from a text prompt, or refine an existing image based on user instructions.
  *
- * - refineDrawing - A function that handles the drawing refinement process.
- * - RefineDrawingInput - The input type for the refineDrawing function.
- * - RefineDrawingOutput - The return type for the refineDrawing function.
+ * - refineDrawing - A function that handles the drawing creation and refinement process.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  RefineDrawingInput,
+  RefineDrawingInputSchema,
+  RefineDrawingOutput,
+  RefineDrawingOutputSchema,
+} from '@/ai/schemas/drawing';
 
-const RefineDrawingInputSchema = z.object({
-  originalDrawingDataUri: z
-    .string()
-    .describe(
-      "The original drawing as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  aiCompletedDrawingDataUri: z
-    .string()
-    .describe(
-      "The AI-completed drawing as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  userInstructions: z.string().describe('Instructions for refining the drawing.'),
-});
-export type RefineDrawingInput = z.infer<typeof RefineDrawingInputSchema>;
-
-const RefineDrawingOutputSchema = z.object({
-  refinedDrawingDataUri: z
-    .string()
-    .describe(
-      "The refined drawing as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  feedback: z.string().optional().describe('Feedback from the AI assistant.'),
-});
-export type RefineDrawingOutput = z.infer<typeof RefineDrawingOutputSchema>;
-
-export async function refineDrawing(input: RefineDrawingInput): Promise<RefineDrawingOutput> {
+export async function refineDrawing(
+  input: RefineDrawingInput
+): Promise<RefineDrawingOutput> {
   return refineDrawingFlow(input);
 }
 
@@ -47,28 +27,43 @@ const refineDrawingFlow = ai.defineFlow(
     outputSchema: RefineDrawingOutputSchema,
   },
   async input => {
+    const systemPrompt = `You are Sasha, a world-class digital artist and helpful AI assistant. Your purpose is to help users create beautiful artwork.
+
+You will be given user instructions and potentially one or two images: an original user drawing and a more recent AI-generated version.
+
+- If you are ONLY given text instructions, create a brand new, high-quality, photorealistic image based on the user's description. The image should be beautiful and inspiring.
+- If you are given an image and instructions, you must refine the provided AI-generated image based on the user's instructions. Use the original drawing for context if it's available. Do not just make minor edits; aim for a significant, artistic improvement that incorporates the user's feedback.
+
+Always respond with both a new image and some friendly, encouraging feedback in the text field. The feedback should be brief and conversational.
+
+User instructions: ${input.userInstructions}`;
+
+    const promptParts: ({text: string} | {media: {url: string}})[] = [
+      {text: systemPrompt},
+    ];
+
+    if (input.originalDrawingDataUri) {
+      promptParts.push({media: {url: input.originalDrawingDataUri}});
+    }
+    if (input.currentDrawingDataUri) {
+      promptParts.push({media: {url: input.currentDrawingDataUri}});
+    }
+
     const {media, text} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        {text: `You are Sasha, a helpful AI assistant that helps users refine their drawings.
-
-The user has provided an original drawing, an AI-completed drawing, and instructions on how to refine the drawing.
-
-Instructions: ${input.userInstructions}
-
-Create a refined version of the AI-completed drawing based on the user's instructions. Return the refined drawing as a data URI. Also provide any feedback to the user that may be helpful.
-`},
-        {media: {url: input.originalDrawingDataUri}},
-        {media: {url: input.aiCompletedDrawingDataUri}},
-      ],
+      prompt: promptParts,
       config: {
         responseModalities: ['IMAGE', 'TEXT'],
       },
     });
 
+    if (!media || !media.url) {
+      throw new Error('The AI failed to generate an image.');
+    }
+
     return {
       refinedDrawingDataUri: media.url,
-      feedback: text
+      feedback: text,
     };
   }
 );
